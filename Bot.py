@@ -5,7 +5,7 @@ import json
 def ParseEvents(client, Path):
     events = client.guilds[0].scheduled_events
 
-    eventsjson = []
+    EventsJson = []
 
     for event in events:
         required = "0"
@@ -24,7 +24,7 @@ def ParseEvents(client, Path):
         except:
             coverImgURL = ""
 
-        eventsjson.append(
+        EventsJson.append(
             {
                 "event_name": event.name,
                 "event_description": event.description,
@@ -37,7 +37,7 @@ def ParseEvents(client, Path):
 
     try:
         with open(Path, "w") as f:
-            f.write(json.dumps(eventsjson))
+            f.write(json.dumps(EventsJson))
             f.close()
 
     except Exception as e:
@@ -47,7 +47,7 @@ def ParseEvents(client, Path):
 try:
     import discord
 except ImportError:
-    os.system("pip3 install discord")
+    os.system("python3 -m pip3 install discord")
     print("Installed discord")
 
 try:  # pull oauth token from file and other constants data
@@ -59,8 +59,8 @@ try:  # pull oauth token from file and other constants data
 
         print(TOKEN)
         f.close()
-except FileNotFoundError:
-    TOKEN = input("Enter token: ")
+except Exception as e:
+    print("Error reading file", e)
 
 # initiate discord bot
 client = discord.Client(intents=discord.Intents.all())
