@@ -16,9 +16,14 @@ def ParseEvents(client, Path):
             or "mandatory attendance" in event.description.lower()
             or "required" in event.description.lower()
             or "mandatory" in event.description.lower()
-            or "attendance" in event.description.lower()
         ):
             required = "1"
+
+        try:
+            coverImgURL = event.cover_image.url
+        except:
+            coverImgURL = ""
+
         eventsjson.append(
             {
                 "event_name": event.name,
@@ -26,6 +31,7 @@ def ParseEvents(client, Path):
                 "event_date": event.start_time.timestamp(),
                 "event_location": event.location,
                 "event_required": required,
+                "event_image_url": coverImgURL,
             }
         )
 
@@ -95,7 +101,7 @@ async def on_scheduled_event_delete(event):
 
 
 @client.event
-async def on_scheduled_event_update(event):
+async def on_scheduled_event_update():
     ParseEvents(client, PATH)
 
 
