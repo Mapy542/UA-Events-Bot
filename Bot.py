@@ -1,5 +1,6 @@
 import os
 import json
+import Auto_Update
 
 
 def ParseEvents(client, Path):
@@ -44,6 +45,8 @@ def ParseEvents(client, Path):
         print("Error writing to file", e)
 
 
+Auto_Update.UpdateSoftware()  # check for update and update if needed
+
 try:
     import discord
 except ImportError:
@@ -51,7 +54,7 @@ except ImportError:
     print("Installed discord")
 
 try:  # pull oauth token from file and other constants data
-    with open("Creds.txt", "r") as f:
+    with open(os.path.join(os.path.realpath(os.path.dirname(__file__)), "../Creds.txt", "r")) as f:
         data = f.read().splitlines()
         TOKEN = data[0].split("=")[1].strip()
         GUILD = data[1].split("=")[1]
