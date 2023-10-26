@@ -6,6 +6,7 @@ Version
 1.0.1
 
 - Added Readme file
+- Fixed Path issue
 
   1.0.0
 
