@@ -36,6 +36,8 @@ def ParseEvents(client, Path):
             }
         )
 
+    EventsJson = sorted(EventsJson, key=lambda k: k["event_date"])
+
     try:
         with open(Path, "w") as f:
             f.write(json.dumps(EventsJson))
