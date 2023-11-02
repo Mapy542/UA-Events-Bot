@@ -3,6 +3,10 @@ It synchronizes the Discord server's events information into a json file that ca
 
 ## Version
 
+### 1.4.0
+
+- Add another mandatory event trigger condition
+
 ### 1.3.0
 
 - Fix credentials file path issue
