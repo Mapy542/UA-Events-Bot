@@ -24,6 +24,9 @@ def ParseEvents(client, Path):
             or "expect you there" in event.description.lower()
             or "expect you at" in event.description.lower()
             or "expect you present" in event.description.lower()
+            or "expect to see you" in event.description.lower()
+            or "expect to see everyone" in event.description.lower()
+            or "expect to see all" in event.description.lower()
         ):
             required = "1"
 
