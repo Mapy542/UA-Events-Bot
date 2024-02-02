@@ -1,6 +1,9 @@
 import os
 import json
 import Auto_Update
+import urllib3
+import random
+import tinydb
 
 
 def ParseEvents(client, Path):
@@ -59,6 +62,13 @@ def ParseEvents(client, Path):
 
 Auto_Update.UpdateSoftware()  # check for update and update if needed
 
+database = tinydb.TinyDB(
+    path=os.path.join(
+        os.path.join(os.path.realpath(os.path.dirname(__file__)), ".."), "messagesDB.json"
+    ),
+    storage=tinydb.storages.JSONStorage,
+)
+
 try:
     import discord
 except ImportError:
@@ -74,6 +84,8 @@ try:  # pull oauth token from file and other constants data
         TOKEN = data[0].split("=")[1].strip()
         GUILD = data[1].split("=")[1]
         PATH = data[2].split("=")[1]
+        CONTACTFORM = data[3].split("=")[1]
+        COUCHAUTH = data[4].split("=")[1]
 
         print(TOKEN)
         f.close()
@@ -106,6 +118,44 @@ async def on_message(message):  # ignore self
     if ".reloadEvents" in message.content:
         ParseEvents(client, PATH)
         await message.channel.send("Events reloaded.")
+
+    if random.random() > 0.0:
+        # poll couch db for new messages
+        allChannels = client.guilds[0].channels
+        newMessageChannel = [x for x in allChannels if x.name == CONTACTFORM][0]
+        print(newMessageChannel)
+
+        alreadySent = database.table("contact_form").all()
+
+        couchHeaders = urllib3.make_headers(basic_auth=COUCHAUTH)
+        http = urllib3.request(
+            method="GET",
+            url="http://leboeuflasing.ddns.net:5984/contact/_all_docs",
+            headers=couchHeaders,
+        )
+
+        allDocs = json.loads(http.data.decode("utf-8"))
+
+        print(allDocs)
+        allDocs = [x for x in allDocs["rows"] if x["id"] not in [x["_id"] for x in alreadySent]]
+        print(allDocs)
+
+        for doc in allDocs:
+            http = urllib3.request(
+                method="GET",
+                url=f"http://leboeuflasing.ddns.net:5984/contact/{doc['id']}",
+                headers=couchHeaders,
+            )
+            docData = json.loads(http.data.decode("utf-8"))
+            print("data " + str(docData))
+            # await message.channel.send(
+            #    f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
+            # )
+            await newMessageChannel.send(
+                f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
+            )
+
+            database.table("contact_form").insert(docData)
 
 
 @client.event
