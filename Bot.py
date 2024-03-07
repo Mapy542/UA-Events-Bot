@@ -1,6 +1,5 @@
 import os
 import json
-import Auto_Update
 import urllib3
 import random
 import tinydb
@@ -60,7 +59,40 @@ def ParseEvents(client, Path):
         print("Error writing to file", e)
 
 
-Auto_Update.UpdateSoftware()  # check for update and update if needed
+def ParseContactMessages(client, CONTACTFORM, COUCHAUTH, database):
+    alreadySent = database.table("contact_form").all()
+
+    couchHeaders = urllib3.make_headers(basic_auth=COUCHAUTH)
+    http = urllib3.request(
+        method="GET",
+        url="http://leboeuflasing.ddns.net:5984/contact/_all_docs",
+        headers=couchHeaders,
+    )
+
+    allDocs = json.loads(http.data.decode("utf-8"))
+
+    allDocs = [x for x in allDocs["rows"] if x["id"] not in [x["_id"] for x in alreadySent]]
+
+    messagesToSend = []
+    for doc in allDocs:
+        http = urllib3.request(
+            method="GET",
+            url=f"http://leboeuflasing.ddns.net:5984/contact/{doc['id']}",
+            headers=couchHeaders,
+        )
+        docData = json.loads(http.data.decode("utf-8"))
+        print("data " + str(docData))
+        # await message.channel.send(
+        #    f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
+        #
+
+        database.table("contact_form").insert(docData)
+        messagesToSend.append(
+            f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
+        )
+
+    return messagesToSend
+
 
 database = tinydb.TinyDB(
     path=os.path.join(
@@ -110,52 +142,38 @@ async def on_message(message):  # ignore self
     if message.author == client.user:
         return
 
-    if ".help" in message.content:
+    if (
+        ".help" in message.content
+        or ".commands" in message.content
+        or "/help" in message.content
+        or "/commands" in message.content
+    ):
         await message.channel.send(
-            " Use .reloadEvents to sync events from the server to the website.\n"
+            """ Use .reloadEvents to sync events from the server to the website.\n
+            Use .reloadMessages to sync messages from the contact form to the website."""
         )
 
     if ".reloadEvents" in message.content:
         ParseEvents(client, PATH)
         await message.channel.send("Events reloaded.")
 
-    if random.random() > 0.0:
+    if random.random() > 0.05:  # 5% chance of running to rate limit...
+        ParseEvents(client, PATH)
+
+    if random.random() > 0.2:  # 20% chance of running to rate limit...
         # poll couch db for new messages
+        toSend = ParseContactMessages(client, CONTACTFORM, COUCHAUTH, database)
         allChannels = client.guilds[0].channels
         newMessageChannel = [x for x in allChannels if x.name == CONTACTFORM][0]
-        print(newMessageChannel)
+        for messageToSend in toSend:
+            await newMessageChannel.send(messageToSend)
 
-        alreadySent = database.table("contact_form").all()
-
-        couchHeaders = urllib3.make_headers(basic_auth=COUCHAUTH)
-        http = urllib3.request(
-            method="GET",
-            url="http://leboeuflasing.ddns.net:5984/contact/_all_docs",
-            headers=couchHeaders,
-        )
-
-        allDocs = json.loads(http.data.decode("utf-8"))
-
-        print(allDocs)
-        allDocs = [x for x in allDocs["rows"] if x["id"] not in [x["_id"] for x in alreadySent]]
-        print(allDocs)
-
-        for doc in allDocs:
-            http = urllib3.request(
-                method="GET",
-                url=f"http://leboeuflasing.ddns.net:5984/contact/{doc['id']}",
-                headers=couchHeaders,
-            )
-            docData = json.loads(http.data.decode("utf-8"))
-            print("data " + str(docData))
-            # await message.channel.send(
-            #    f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
-            # )
-            await newMessageChannel.send(
-                f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
-            )
-
-            database.table("contact_form").insert(docData)
+    if ".reloadMessages" in message.content:
+        toSend = ParseContactMessages(client, CONTACTFORM, COUCHAUTH, database)
+        allChannels = client.guilds[0].channels
+        newMessageChannel = [x for x in allChannels if x.name == CONTACTFORM][0]
+        for messageToSend in toSend:
+            await newMessageChannel.send(messageToSend)
 
 
 @client.event

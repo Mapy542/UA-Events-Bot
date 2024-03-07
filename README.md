@@ -3,6 +3,14 @@ It synchronizes the Discord server's events information into a json file that ca
 
 ## Version
 
+### 2.0.0
+
+- Removed broken auto-update feature in favor of using Repo-Update-Dispatcher
+
+  - See Mapy542/Repo-Update-Dispatcher for more information
+
+- Added more message and command options
+
 ### 1.4.0
 
 - Add another mandatory event trigger condition
