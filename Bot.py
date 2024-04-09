@@ -6,6 +6,12 @@ import tinydb
 
 
 def ParseEvents(client, Path):
+    """Parse events from the discord server and write them to a json file.
+
+    Args:
+        client (discord.Client): The discord client object.
+        Path (str): The path to the json file to write the events to.
+    """
     events = client.guilds[0].scheduled_events
 
     EventsJson = []
@@ -29,6 +35,12 @@ def ParseEvents(client, Path):
             or "expect to see you" in event.description.lower()
             or "expect to see everyone" in event.description.lower()
             or "expect to see all" in event.description.lower()
+            or "sub-team" in event.name.lower()
+            or "subteam" in event.name.lower()
+            or "sub team" in event.name.lower()
+            or "sub-team" in event.description.lower()
+            or "subteam" in event.description.lower()
+            or "sub team" in event.description.lower()
         ):
             required = "1"
 
@@ -60,38 +72,55 @@ def ParseEvents(client, Path):
 
 
 def ParseContactMessages(client, CONTACTFORM, COUCHAUTH, database):
-    alreadySent = database.table("contact_form").all()
+    """Parse messages from the contact form and write them to the database as well as return any new messages.
 
-    couchHeaders = urllib3.make_headers(basic_auth=COUCHAUTH)
-    http = urllib3.request(
-        method="GET",
-        url="http://leboeuflasing.ddns.net:5984/contact/_all_docs",
-        headers=couchHeaders,
-    )
+    Args:
+        client (Discord.Client): The discord client object.
+        CONTACTFORM (NONE?): _description_
+        COUCHAUTH (str): authentication for the couch db.
+        database (tinydb.TinyDB): The database object to write the messages to.
 
-    allDocs = json.loads(http.data.decode("utf-8"))
+    Returns:
+        list: A list of messages to send to the discord channel.
+    """
+    try:
+        alreadySent = database.table("contact_form").all()
 
-    allDocs = [x for x in allDocs["rows"] if x["id"] not in [x["_id"] for x in alreadySent]]
-
-    messagesToSend = []
-    for doc in allDocs:
+        couchHeaders = urllib3.make_headers(basic_auth=COUCHAUTH)
         http = urllib3.request(
             method="GET",
-            url=f"http://leboeuflasing.ddns.net:5984/contact/{doc['id']}",
+            url="http://leboeuflasing.ddns.net:5984/contact/_all_docs",
             headers=couchHeaders,
         )
-        docData = json.loads(http.data.decode("utf-8"))
-        print("data " + str(docData))
-        # await message.channel.send(
-        #    f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
-        #
 
-        database.table("contact_form").insert(docData)
-        messagesToSend.append(
-            f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
-        )
+        allDocs = json.loads(http.data.decode("utf-8"))
 
-    return messagesToSend
+        allDocs = [x for x in allDocs["rows"] if x["id"] not in [x["_id"] for x in alreadySent]]
+
+        messagesToSend = []
+        for doc in allDocs:
+            http = urllib3.request(
+                method="GET",
+                url=f"http://leboeuflasing.ddns.net:5984/contact/{doc['id']}",
+                headers=couchHeaders,
+            )
+            docData = json.loads(http.data.decode("utf-8"))
+            # await message.channel.send(
+            #    f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
+            #
+
+            database.table("contact_form").insert(docData)
+            messagesToSend.append(
+                f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
+            )
+
+        return messagesToSend
+    except Exception as e:
+        return [
+            "Error parsing messages from contact form. Exception: "
+            + e.__str__
+            + "Please check the couchdb."
+        ]
 
 
 database = tinydb.TinyDB(
