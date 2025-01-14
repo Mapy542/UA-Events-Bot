@@ -3,6 +3,7 @@ import json
 import urllib3
 import random
 import tinydb
+import re
 
 
 def ParseEvents(client, Path):
@@ -110,9 +111,14 @@ def ParseContactMessages(client, CONTACTFORM, COUCHAUTH, database):
             #
 
             database.table("contact_form").insert(docData)
-            messagesToSend.append(
-                f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
-            )
+
+            pattern = r"(?i)(unsubscribe)(?-i)"  # match word unsubscribe in any case
+            if not re.search(
+                pattern, docData["message"]
+            ):  # if the message does not contain the word unsubscribe post it
+                messagesToSend.append(
+                    f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
+                )
 
         return messagesToSend
     except Exception as e:
