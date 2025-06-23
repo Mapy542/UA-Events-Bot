@@ -36,12 +36,6 @@ def ParseEvents(client, Path):
             or "expect to see you" in event.description.lower()
             or "expect to see everyone" in event.description.lower()
             or "expect to see all" in event.description.lower()
-            or "sub-team" in event.name.lower()
-            or "subteam" in event.name.lower()
-            or "sub team" in event.name.lower()
-            or "sub-team" in event.description.lower()
-            or "subteam" in event.description.lower()
-            or "sub team" in event.description.lower()
         ):
             required = "1"
 
@@ -90,19 +84,18 @@ def ParseContactMessages(client, CONTACTFORM, COUCHAUTH, database):
         couchHeaders = urllib3.make_headers(basic_auth=COUCHAUTH)
         http = urllib3.request(
             method="GET",
-            url="http://leboeuflasing.ddns.net:5984/contact/_all_docs",
+            url="http://leboeuflasing.com:5984/contact/_all_docs",
             headers=couchHeaders,
         )
 
         allDocs = json.loads(http.data.decode("utf-8"))
-
         allDocs = [x for x in allDocs["rows"] if x["id"] not in [x["_id"] for x in alreadySent]]
 
         messagesToSend = []
         for doc in allDocs:
             http = urllib3.request(
                 method="GET",
-                url=f"http://leboeuflasing.ddns.net:5984/contact/{doc['id']}",
+                url=f"http://leboeuflasing.com:5984/contact/{doc['id']}",
                 headers=couchHeaders,
             )
             docData = json.loads(http.data.decode("utf-8"))
@@ -112,19 +105,19 @@ def ParseContactMessages(client, CONTACTFORM, COUCHAUTH, database):
 
             database.table("contact_form").insert(docData)
 
-            pattern = r"(?i)(unsubscribe)(?-i)"  # match word unsubscribe in any case
+            pattern = r"(?i)unsubscribe"  # match word unsubscribe in any case
             if not re.search(
                 pattern, docData["message"]
             ):  # if the message does not contain the word unsubscribe post it
                 messagesToSend.append(
-                    f"New message from {docData['name']} at {docData['email']}:\n{docData['message']}"
+                    f"New message from {docData['name']} at {docData['email']} on {str(docData['time'])} :\n{docData['message']}"
                 )
 
         return messagesToSend
     except Exception as e:
         return [
             "Error parsing messages from contact form. Exception: "
-            + e.__str__
+            + e.__str__()
             + "Please check the couchdb."
         ]
 
